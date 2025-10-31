@@ -6,12 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tradutor de Libras Interativo</title>
 
-    <!-- Tailwind e Fontes -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-    <!-- CSS externo -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -21,27 +19,32 @@
         <header class="text-center mb-10">
             <h1
                 class="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600">
-                Libras.IO</h1>
+                Libras.IO
+            </h1>
             <p class="text-lg text-gray-600 mt-2">Sua ponte de comunicação com a Língua Brasileira de Sinais</p>
         </header>
 
-        <!-- Navegação das Abas -->
         <div class="mb-8 flex flex-wrap justify-center rounded-lg bg-violet-100/50 p-1.5 shadow-inner">
-            <button
-                class="tab-button text-lg font-semibold py-3 px-6 text-gray-700 hover:bg-violet-100 rounded-md transition-colors duration-300 active"
-                onclick="openTab('introducao')">Introdução</button>
-            <button
-                class="tab-button text-lg font-semibold py-3 px-6 text-gray-700 hover:bg-violet-100 rounded-md transition-colors duration-300"
-                onclick="openTab('alfabeto')">Alfabeto</button>
-            <button
-                class="tab-button text-lg font-semibold py-3 px-6 text-gray-700 hover:bg-violet-100 rounded-md transition-colors duration-300"
-                onclick="openTab('palavras')">Palavras</button>
+            <button id="btn-intro"
+                class="tab-button text-lg font-semibold py-3 px-6 text-gray-700 hover:bg-violet-100 rounded-md transition-colors duration-300">
+                Introdução
+            </button>
+            <button id="btn-alfabeto"
+                class="tab-button text-lg font-semibold py-3 px-6 text-gray-700 hover:bg-violet-100 rounded-md transition-colors duration-300">
+                Alfabeto
+            </button>
+            <button id="btn-palavras"
+                class="tab-button text-lg font-semibold py-3 px-6 text-gray-700 hover:bg-violet-100 rounded-md transition-colors duration-300">
+                Palavras
+            </button>
+            <button id="btn-assistente"
+                class="tab-button text-lg font-semibold py-3 px-6 text-gray-700 hover:bg-violet-100 rounded-md transition-colors duration-300">
+                Assistente IA
+            </button>
         </div>
 
-        <!-- Conteúdo das Abas -->
         <main>
-            <!-- Aba de Introdução -->
-            <div id="introducao" class="tab-content main-card active bg-white p-6 md:p-8 rounded-lg shadow-md">
+            <div id="introducao" class="tab-content main-card bg-white p-6 md:p-8 rounded-lg shadow-md" style="display: none;">
                 <h2 class="text-3xl font-bold text-violet-700 mb-4">Bem-vindo ao Projeto!</h2>
                 <p class="mb-4 text-gray-700 leading-relaxed">
                     Este projeto é uma ferramenta interativa criada para auxiliar no aprendizado e na comunicação em
@@ -49,81 +52,97 @@
                     acessível para todos.
                 </p>
                 <p class="mb-4 text-gray-700 leading-relaxed">
-                    Aqui você encontrará duas funcionalidades principais:
+                    Aqui você encontrará três funcionalidades principais:
                 </p>
                 <ul class="list-disc list-inside mb-6 space-y-2 text-gray-700">
-                    <li><strong>Texto para Libras:</strong> Utilizando o widget do VLibras (o ícone azul no canto da
-                        tela), você pode selecionar qualquer texto desta página para vê-lo traduzido por um simpático
-                        avatar 3D.</li>
-                    <li><strong>Libras para Texto:</strong> Nas abas "Alfabeto" e "Palavras", você pode usar sua câmera
-                        para que nossa Inteligência Artificial reconheça os sinais que você faz e os traduza para texto
-                        em tempo real.</li>
+                    <li><strong>Alfabeto e Palavras:</strong> Use sua câmera para que nossa IA de Visão Computacional
+                        reconheça os sinais em tempo real.</li>
+                    <li><strong>Assistente IA:</strong> Tire dúvidas sobre gramática, história ou cultura Surda com
+                        uma IA Generativa.</li>
+                    <li><strong>Texto para Libras (VLibras):</strong> Utilize o widget azul para traduzir qualquer
+                        texto desta página com um avatar 3D.</li>
                 </ul>
                 <div class="bg-violet-100 border-l-4 border-violet-500 text-violet-800 p-4 rounded-r-lg">
-                    <p class="font-semibold">Experimente agora!</p>
-                    <p>Clique no ícone do VLibras e depois em qualquer parágrafo para ver a mágica acontecer.</p>
+                    <p class="font-semibold">Experimente!</p>
+                    <p>Navegue pelas abas para testar os diferentes tipos de IA.</p>
                 </div>
             </div>
 
-            <!-- Aba do Alfabeto -->
-            <div id="alfabeto" class="tab-content text-center" style="max-width: 600px; margin: 2rem auto;">
+            <div id="alfabeto" class="tab-content text-center" style="max-width: 600px; margin: 2rem auto; display: none;">
                 <div class="main-card bg-white p-6 md:p-8 rounded-lg shadow-md">
-                    <h2 class="text-3xl font-bold text-violet-700 mb-2">Tradutor do Alfabeto</h2>
-                    <p class="mb-6 text-gray-600">Posicione sua mão em frente à câmera para traduzir as letras.</p>
-
-                    <div id="alfabeto-loader" class="flex flex-col items-center justify-center p-8">
+                    <h2 class="text-3xl font-bold text-violet-700 mb-2">Tradutor do Alfabeto (IA de Classificação)</h2>
+                    <p class="mb-6 text-gray-600">Posicione sua mão no quadrado para traduzir as letras.</p>
+                    <div id="status" class="flex flex-col items-center justify-center p-8">
                         <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4">
                         </div>
                         <p class="text-violet-600 font-semibold">Carregando IA e câmera...</p>
                     </div>
-
                     <div id="alfabeto-content" class="hidden">
                         <div class="camera-container bg-gray-900 shadow-lg relative rounded-lg overflow-hidden">
-                            <video id="webcam_alfabeto" autoplay playsinline muted
-                                class="absolute inset-0 w-full h-full object-cover rounded-lg"></video>
-                            <canvas id="output_canvas_alfabeto" width="1280" height="720"
-                                class="absolute inset-0 w-full h-full"></canvas>
+                            <video id="webcam" autoplay playsinline muted
+                                class="absolute top-0 left-0 w-full h-full rounded-lg z-0"></video>
+                            <canvas id="overlay" width="400" height="400"
+                                class="absolute top-0 left-0 w-full h-full pointer-events-none z-10"></canvas>
                         </div>
-
                         <div class="mt-6 bg-gray-100 p-4 rounded-lg">
                             <p class="text-xl text-gray-600">Letra Detectada:</p>
-                            <p id="resultado_alfabeto"
+                            <p id="result"
                                 class="text-5xl font-bold text-violet-600 h-16 flex items-center justify-center">...</p>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- Aba de Palavras -->
-            <div id="palavras" class="tab-content text-center">
-                <div class="main-card bg-white p-6 md:p-8 rounded-lg shadow-md">
-                    <h2 class="text-3xl font-bold text-violet-700 mb-2">Tradutor de Palavras</h2>
-                    <p class="mb-6 text-gray-600">Faça um sinal para uma palavra simples em frente à câmera.</p>
 
-                    <div id="palavras-loader" class="flex flex-col items-center justify-center p-8">
+            <div id="palavras" class="tab-content text-center" style="max-width: 600px; margin: 2rem auto; display: none;">
+                <div class="main-card bg-white p-6 md:p-8 rounded-lg shadow-md">
+                    <h2 class="text-3xl font-bold text-violet-700 mb-2">Tradutor de Palavras (IA de Deteção)</h2>
+                    <p class="mb-6 text-gray-600">Faça um sinal para uma palavra simples em frente à câmera.</p>
+                    <div id="status_palavras" class="flex flex-col items-center justify-center p-8">
                         <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4">
                         </div>
                         <p class="text-violet-600 font-semibold">Carregando IA e câmera...</p>
                     </div>
-
                     <div id="palavras-content" class="hidden">
-                        <div class="camera-container bg-gray-900 shadow-lg">
-                            <video id="webcam_palavras" autoplay playsinline></video>
-                            <canvas id="output_canvas_palavras" width="1280" height="720"></canvas>
+                        <div class="camera-container bg-gray-900 shadow-lg relative rounded-lg overflow-hidden">
+                            <video id="webcam_palavras" autoplay playsinline muted
+                                class="absolute top-0 left-0 w-full h-full rounded-lg z-0"></video>
+                            <canvas id="output_canvas_palavras"
+                                class="absolute top-0 left-0 w-full h-full pointer-events-none z-10"></canvas>
                         </div>
                         <div class="mt-6 bg-gray-100 p-4 rounded-lg">
                             <p class="text-xl text-gray-600">Palavra Detectada:</p>
-                            <p id="resultado_palavras"
+                            <p id="result_palavras"
                                 class="text-5xl font-bold text-violet-600 h-16 flex items-center justify-center">...</p>
-                            <p class="text-sm text-gray-500 mt-2">(Tente: Oi, Eu te amo, Legal, Ruim, Telefone, Rock,
-                                Paz...)</p>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <div id="assistente" class="tab-content" style="max-width: 640px; margin: auto; display: none;">
+                <div class="main-card bg-white p-6 md:p-8 rounded-lg shadow-md">
+                    <h2 class="text-3xl font-bold text-violet-700 mb-4">Assistente IA (IA Generativa)</h2>
+                    <p class="mb-6 text-gray-600">Pergunte-me qualquer coisa sobre Libras, gramática ou a cultura Surda.</p>
+                    
+                    <div id="chat-messages" class="mb-4">
+                        <div class="chat-message ai-message">
+                            Olá! Eu sou seu assistente de IA. Como posso ajudar você a aprender Libras hoje?
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <input type="text" id="chat-input" placeholder="Escreva sua pergunta..." 
+                               class="flex-1 border border-gray-300 rounded-lg p-3 text-lg focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                        <button id="chat-send" 
+                                class="bg-violet-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-violet-700 transition-colors duration-200">
+                            Enviar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
-    <!-- Widget VLibras -->
     <div vw class="enabled">
         <div vw-access-button class="active"></div>
         <div vw-plugin-wrapper>
@@ -135,9 +154,9 @@
         new window.VLibras.Widget('https://vlibras.gov.br/app');
     </script>
 
-    <!-- JS externo -->
-    <script src="ia_script.js" defer></script>
-    <script type="module" src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.js" defer></script>
+    
+    <script src="script.js" defer></script>
+    
 </body>
-
 </html>
