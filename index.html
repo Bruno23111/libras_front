@@ -44,7 +44,8 @@
         </div>
 
         <main>
-            <div id="introducao" class="tab-content main-card bg-white p-6 md:p-8 rounded-lg shadow-md" style="display: none;">
+            <div id="introducao" class="tab-content main-card bg-white p-6 md:p-8 rounded-lg shadow-md"
+                style="display: none;">
                 <h2 class="text-3xl font-bold text-violet-700 mb-4">Bem-vindo ao Projeto!</h2>
                 <p class="mb-4 text-gray-700 leading-relaxed">
                     Este projeto é uma ferramenta interativa criada para auxiliar no aprendizado e na comunicação em
@@ -68,7 +69,8 @@
                 </div>
             </div>
 
-            <div id="alfabeto" class="tab-content text-center" style="max-width: 600px; margin: 2rem auto; display: none;">
+            <div id="alfabeto" class="tab-content text-center"
+                style="max-width: 600px; margin: 2rem auto; display: none;">
                 <div class="main-card bg-white p-6 md:p-8 rounded-lg shadow-md">
                     <h2 class="text-3xl font-bold text-violet-700 mb-2">Tradutor do Alfabeto (IA de Classificação)</h2>
                     <p class="mb-6 text-gray-600">Posicione sua mão no quadrado para traduzir as letras.</p>
@@ -93,7 +95,8 @@
                 </div>
             </div>
 
-            <div id="palavras" class="tab-content text-center" style="max-width: 600px; margin: 2rem auto; display: none;">
+            <div id="palavras" class="tab-content text-center"
+                style="max-width: 600px; margin: 2rem auto; display: none;">
                 <div class="main-card bg-white p-6 md:p-8 rounded-lg shadow-md">
                     <h2 class="text-3xl font-bold text-violet-700 mb-2">Tradutor de Palavras (IA de Deteção)</h2>
                     <p class="mb-6 text-gray-600">Faça um sinal para uma palavra simples em frente à câmera.</p>
@@ -121,19 +124,22 @@
             <div id="assistente" class="tab-content" style="max-width: 640px; margin: auto; display: none;">
                 <div class="main-card bg-white p-6 md:p-8 rounded-lg shadow-md">
                     <h2 class="text-3xl font-bold text-violet-700 mb-4">Assistente IA (IA Generativa)</h2>
-                    <p class="mb-6 text-gray-600">Pergunte-me qualquer coisa sobre Libras, gramática ou a cultura Surda.</p>
-                    
+                    <p class="mb-6 text-gray-600">Pergunte-me qualquer coisa sobre Libras, gramática ou a cultura Surda.
+                    </p>
+
                     <div id="chat-messages" class="mb-4">
                         <div class="chat-message ai-message">
                             Olá! Eu sou seu assistente de IA. Como posso ajudar você a aprender Libras hoje?
                         </div>
                     </div>
-                    
-                    <div class="flex gap-2">
-                        <input type="text" id="chat-input" placeholder="Escreva sua pergunta..." 
-                               class="flex-1 border border-gray-300 rounded-lg p-3 text-lg focus:ring-2 focus:ring-violet-500 focus:outline-none">
-                        <button id="chat-send" 
-                                class="bg-violet-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-violet-700 transition-colors duration-200">
+
+                    <!-- **** MODIFICAÇÃO AQUI **** -->
+                    <!-- Adicionado id="chat-input-container" ao div wrapper -->
+                    <div id="chat-input-container" class="flex gap-2">
+                        <input type="text" id="chat-input" placeholder="Escreva sua pergunta..."
+                            class="flex-1 border border-gray-300 rounded-lg p-3 text-lg focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                        <button id="chat-send"
+                            class="bg-violet-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-violet-700 transition-colors duration-200">
                             Enviar
                         </button>
                     </div>
@@ -150,13 +156,16 @@
         </div>
     </div>
     <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
     <script>
         new window.VLibras.Widget('https://vlibras.gov.br/app');
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.js" defer></script>
-    
-    <script src="script.js" defer></script>
-    
+    <script type="module" src="script.js"></script>
+
+
 </body>
+
 </html>

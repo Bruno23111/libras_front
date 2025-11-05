@@ -1,11 +1,15 @@
+import { HandLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest";
+
+
+
 // ===================================================================
 // PARTE 1: LÓGICA DO ALFABETO (TensorFlow.js)
 // ===================================================================
 
 // --- Configurações (Alfabeto) ---
-let videoAlfabeto; 
-let isAlfabetoTabActive = false; 
-let isAlfabetoInitialized = false;  
+let videoAlfabeto;
+let isAlfabetoTabActive = false;
+let isAlfabetoInitialized = false;
 let modelAlfabeto = null;
 let streamAlfabeto = null; // Para guardar o stream da câmara
 const MODEL_URL = './modelos_web/model.json';
@@ -20,6 +24,7 @@ const CLASS_MAP_ALFABETO = {
 let lastPredictionsAlfabeto = [];
 const SMOOTHING_WINDOW_ALFABETO = 5;
 
+
 // Elementos locais (Alfabeto)
 let statusElementAlfabeto;
 let resultElementAlfabeto;
@@ -27,7 +32,7 @@ let overlayCanvasAlfabeto;
 let overlayCtxAlfabeto;
 let alfabetoContent;
 
-let boxX = 0, boxY = 0, boxSize = 0; 
+let boxX = 0, boxY = 0, boxSize = 0;
 
 // CORREÇÃO: Movida para o topo da PARTE 1
 // Suavização de predições (Alfabeto)
@@ -41,7 +46,7 @@ function smoothPredictionAlfabeto(newLetter) {
 
 // Função de inicialização (Alfabeto)
 async function initAlfabeto() {
-    if (isAlfabetoInitialized) return; 
+    if (isAlfabetoInitialized) return;
     isAlfabetoInitialized = true;
 
     try {
@@ -55,7 +60,7 @@ async function initAlfabeto() {
             await tf.setBackend('cpu');
             await tf.ready();
         }
-        
+
         modelAlfabeto = await tf.loadLayersModel(MODEL_URL);
         tf.tidy(() => {
             modelAlfabeto.predict(tf.zeros([1, IMG_WIDTH_ALFABETO, IMG_HEIGHT_ALFABETO, 3]));
@@ -71,13 +76,13 @@ async function initAlfabeto() {
 async function startWebcamAlfabeto() {
     try {
         // 'videoAlfabeto' é definido no DOMContentLoaded
-        
+
         videoAlfabeto.onplaying = () => {
             overlayCanvasAlfabeto.width = videoAlfabeto.videoWidth;
             overlayCanvasAlfabeto.height = videoAlfabeto.videoHeight;
             statusElementAlfabeto.classList.add("hidden");
             alfabetoContent.classList.remove("hidden");
-            isAlfabetoTabActive = true; 
+            isAlfabetoTabActive = true;
             predictLoopAlfabeto();
         };
 
@@ -99,7 +104,7 @@ async function startWebcamAlfabeto() {
 // Loop de predição (Alfabeto)
 async function predictLoopAlfabeto() {
     if (!isAlfabetoTabActive || !modelAlfabeto || !videoAlfabeto || videoAlfabeto.paused || videoAlfabeto.readyState < 2) {
-        if (isAlfabetoTabActive) drawOverlayAlfabeto(); 
+        if (isAlfabetoTabActive) drawOverlayAlfabeto();
         requestAnimationFrame(predictLoopAlfabeto);
         return;
     }
@@ -108,22 +113,22 @@ async function predictLoopAlfabeto() {
         const frame = tf.browser.fromPixels(videoAlfabeto);
         const h = frame.shape[0];
         const w = frame.shape[1];
-        
+
         const y1 = boxY / h;
         const x1 = boxX / w;
         const y2 = (boxY + boxSize) / h;
         const x2 = (boxX + boxSize) / w;
 
         const cropped = tf.image.cropAndResize(
-            frame.expandDims(0), 
-            [[y1, x1, y2, x2]],  
-            [0],                 
-            [IMG_WIDTH_ALFABETO, IMG_HEIGHT_ALFABETO] 
+            frame.expandDims(0),
+            [[y1, x1, y2, x2]],
+            [0],
+            [IMG_WIDTH_ALFABETO, IMG_HEIGHT_ALFABETO]
         );
-        
+
         const scaled = cropped.div(255.0);
         const prediction = modelAlfabeto.predict(scaled);
-        
+
         const probabilities = prediction.dataSync();
         const predictedIndex = prediction.argMax(-1).dataSync()[0];
         const confidence = probabilities[predictedIndex];
@@ -139,7 +144,7 @@ async function predictLoopAlfabeto() {
         if (resultElementAlfabeto) resultElementAlfabeto.innerText = "...";
     }
 
-    drawOverlayAlfabeto(); 
+    drawOverlayAlfabeto();
     requestAnimationFrame(predictLoopAlfabeto);
 }
 
@@ -156,21 +161,21 @@ function drawOverlayAlfabeto() {
     const h = overlayCanvasAlfabeto.height;
 
     overlayCtxAlfabeto.clearRect(0, 0, w, h);
-    
-    boxSize = Math.min(w, h) * 0.5; 
+
+    boxSize = Math.min(w, h) * 0.5;
     boxX = (w - boxSize) / 2;
     boxY = (h - boxSize) / 2;
 
-    overlayCtxAlfabeto.strokeStyle = "#7C3AED"; 
+    overlayCtxAlfabeto.strokeStyle = "#7C3AED";
     overlayCtxAlfabeto.lineWidth = 4;
-    overlayCtxAlfabeto.setLineDash([10, 10]); 
-    overlayCtxAlfabeto.strokeRect(boxX, boxY, boxSize, boxSize); 
-    overlayCtxAlfabeto.setLineDash([]); 
+    overlayCtxAlfabeto.setLineDash([10, 10]);
+    overlayCtxAlfabeto.strokeRect(boxX, boxY, boxSize, boxSize);
+    overlayCtxAlfabeto.setLineDash([]);
 
     overlayCtxAlfabeto.font = "bold 24px 'Inter', sans-serif";
-    overlayCtxAlfabeto.fillStyle = "#E0E0FF"; 
+    overlayCtxAlfabeto.fillStyle = "#E0E0FF";
     overlayCtxAlfabeto.textAlign = "center";
-    overlayCtxAlfabeto.textBaseline = "bottom"; 
+    overlayCtxAlfabeto.textBaseline = "bottom";
     overlayCtxAlfabeto.fillText("Posicione sua mão aqui", w / 2, boxY - 10);
 }
 
@@ -185,93 +190,107 @@ let runningMode = "VIDEO";
 let video_palavras, canvas_palavras, ctx_palavras, drawingUtils;
 let lastVideoTime = -1;
 let results = null;
-let isPalavrasInitialized = false; 
+let isPalavrasInitialized = false;
 let streamPalavras = null; // Para guardar o stream da câmara
 
 // CORREÇÃO: Esta é a nova função que ESPERA pelo bundle
-function waitForVisionBundle() {
-    // Retorna uma Promessa que só resolve quando o 'vision' estiver pronto
-    return new Promise((resolve) => {
-        function check() {
-            if (window.tasks && window.tasks.vision) {
-                console.log("MediaPipe Vision bundle CARREGADO.");
-                resolve();
-            } else {
-                console.log("A aguardar pelo MediaPipe Vision bundle...");
-                setTimeout(check, 100); // Tenta novamente em 100ms
-            }
-        }
-        check();
-    });
-}
+
 
 // Inicialização do MediaPipe (Palavras)
 async function initPalavras() {
     if (isPalavrasInitialized) return;
-    
-    // CORREÇÃO: Agora 'initPalavras' espera (await) pelo bundle
-    await waitForVisionBundle();
-    
-    // O bundle está carregado, podemos desestruturar com segurança
-    const { HandLandmarker, FilesetResolver, DrawingUtils } = window.tasks.vision;
+    const statusElem = document.getElementById("status_palavras");
+    try {
+        statusElem && (statusElem.innerText = "Carregando MediaPipe Vision...");
 
-    const vision = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-    );
+        statusElem && (statusElem.innerText = "Iniciando FilesetResolver...");
 
-    handLandmarker = await HandLandmarker.createFromOptions(vision, {
-        baseOptions: {
-            modelAssetPath:
-                "https://storage.googleapis.com/mediapipe-assets/hand_landmarker.task",
-            delegate: "GPU"
-        },
-        runningMode,
-        numHands: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.7,
-    });
+        // Cria o resolver - se der erro, tentamos logging adicional
+        const vision = await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+        );
 
-    isPalavrasInitialized = true;
-    console.log("HandLandmarker (Palavras) inicializado.");
+        statusElem && (statusElem.innerText = "Carregando modelo HandLandmarker...");
+
+        // Cria o handLandmarker. Se o delegate 'GPU' falhar em alguns ambientes, fallback para 'CPU'
+        try {
+            handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath:
+                        "https://storage.googleapis.com/mediapipe-assets/hand_landmarker.task",
+                    delegate: "GPU"
+                },
+                runningMode,
+                numHands: 1,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.7,
+            });
+        } catch (errGpu) {
+            console.warn("Falha ao criar HandLandmarker com delegate GPU, tentando CPU...", errGpu);
+            handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath:
+                        "https://storage.googleapis.com/mediapipe-assets/hand_landmarker.task",
+                    delegate: "CPU"
+                },
+                runningMode,
+                numHands: 1,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.7,
+            });
+        }
+
+        isPalavrasInitialized = true;
+        console.log("HandLandmarker (Palavras) inicializado com sucesso.");
+        statusElem && (statusElem.classList.add('hidden'));
+
+    } catch (err) {
+        console.error("Erro em initPalavras():", err);
+        isPalavrasInitialized = false;
+        // Mostra erro mais claro ao utilizador
+        const statusElem = document.getElementById("status_palavras");
+        if (statusElem) {
+            statusElem.classList.remove('hidden');
+            statusElem.innerText = "Erro ao carregar MediaPipe (ver console). Verifique rede/CDN ou tente recarregar a página.";
+        }
+        // Rejeita para que chamador saiba (ex.: window.openTab pode optar por não chamar setupCamera)
+        throw err;
+    }
 }
 
-// Configura câmera (Palavras)
+// Inicia a webcam (Palavras) - FUNÇÃO ADICIONADA
 async function setupCameraPalavras() {
-    video_palavras = document.getElementById("webcam_palavras");
-    canvas_palavras = document.getElementById("output_canvas_palavras");
-    ctx_palavras = canvas_palavras.getContext("2d");
-    
-    // CORREÇÃO: Esta verificação agora é segura, pois 'initPalavras' esperou
-    if (window.tasks && window.tasks.vision) {
-        const { DrawingUtils } = window.tasks.vision;
-        drawingUtils = new DrawingUtils(ctx_palavras);
-    } else {
-        // Este erro não deve mais acontecer
-        console.error("Vision bundle não carregado, DrawingUtils indisponível.");
-        return; 
+    if (!video_palavras) {
+        console.error("Elemento de vídeo 'webcam_palavras' não encontrado.");
+        return;
     }
+    const statusElem = document.getElementById("status_palavras");
+    const contentElem = document.getElementById("palavras-content");
 
     try {
         video_palavras.onplaying = () => {
+            // Ajusta o tamanho do canvas para o tamanho real do vídeo
             canvas_palavras.width = video_palavras.videoWidth;
             canvas_palavras.height = video_palavras.videoHeight;
 
-            document.getElementById("status_palavras").classList.add("hidden");
-            document.getElementById("palavras-content").classList.remove("hidden");
+            statusElem.classList.add("hidden");
+            contentElem.classList.remove("hidden");
 
+            // Inicia o loop
             predictLoopPalavras();
         };
 
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user", width: 1280, height: 720 },
+            video: { width: 1280, height: 720 },
+            audio: false
         });
-        streamPalavras = stream; // Guarda o stream
+        streamPalavras = stream; // Guarda o stream para parar depois
         video_palavras.srcObject = streamPalavras;
-        await video_palavras.play(); // Tenta dar play
+        await video_palavras.play();
 
     } catch (err) {
-        console.error("Erro ao acessar câmera (Palavras):", err);
-        document.getElementById("status_palavras").innerText = "Erro ao acessar câmera.";
+        console.error("Erro ao acessar à webcam (Palavras): ", err);
+        statusElem.innerText = 'Erro ao acessar à webcam.';
     }
 }
 
@@ -348,29 +367,55 @@ function drawBoundingBoxPalavras(landmarks) {
     ctx_palavras.strokeRect(minX, minY, w, h);
 }
 
-// Reconhecimento de gestos (Palavras)
 function recognizeGestureWord(landmarks) {
     const resultadoElem = document.getElementById("result_palavras");
     if (!resultadoElem) return;
 
     const getDistance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
+    // Adiciona o ponto 'indexPip' (junta do meio do indicador)
     const thumbTip = landmarks[4], indexTip = landmarks[8],
         middleTip = landmarks[12], ringTip = landmarks[16],
-        pinkyTip = landmarks[20], wrist = landmarks[0];
+        pinkyTip = landmarks[20], wrist = landmarks[0],
+        indexPip = landmarks[6]; 
 
     const isThumbUp = thumbTip.y < landmarks[2].y;
-    const isIndexUp = indexTip.y < landmarks[6].y;
+    const isIndexUp = indexTip.y < landmarks[6].y; // Dedo esticado (ponta > base)
     const isMiddleUp = middleTip.y < landmarks[10].y;
     const isRingUp = ringTip.y < landmarks[14].y;
     const isPinkyUp = pinkyTip.y < landmarks[18].y;
 
     const countFingersUp = [isIndexUp, isMiddleUp, isRingUp, isPinkyUp].filter(Boolean).length;
 
+    // --- NOVAS REGRAS ADICIONADAS (Têm prioridade) ---
+
+    // NOVO: "Pensar"
+    // Lógica: Dedo indicador esticado (isIndexUp), outros dobrados,
+    // e a ponta do dedo está no topo do ecrã (y < 0.25), simulando a têmpora.
+    if (isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp && indexTip.y < 0.25) {
+        return resultadoElem.innerText = "Pensar";
+    }
+
+    // NOVO: "Aqui"
+    // Lógica: Dedo indicador esticado (isIndexUp), outros dobrados,
+    // E está a apontar para baixo (ponta do dedo 'y' > junta do meio 'y')
+    // E é vertical (diferença 'x' entre ponta e junta é pequena)
+    const isIndexPointingDown = indexTip.y > indexPip.y + 0.05; // +0.05 de margem
+    const isIndexVertical = Math.abs(indexTip.x - indexPip.x) < 0.08;
+    if (isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp && isIndexPointingDown && isIndexVertical) {
+         return resultadoElem.innerText = "Aqui";
+    }
+
+    // --- REGRAS EXISTENTES (Com modificações) ---
+
     if (isThumbUp && isIndexUp && !isMiddleUp && !isRingUp && isPinkyUp)
         return resultadoElem.innerText = "Eu te amo";
+
+    // MODIFICADO: "Telefone" e "Agora" usam a mão em 'Y'.
+    // A diferença é o movimento, que não detetamos.
     if (isThumbUp && !isIndexUp && !isMiddleUp && !isRingUp && isPinkyUp)
-        return resultadoElem.innerText = "Telefone";
+        return resultadoElem.innerText = "Telefone / Agora";
+
     if (!isThumbUp && isIndexUp && !isMiddleUp && !isRingUp && isPinkyUp)
         return resultadoElem.innerText = "Rock";
     if (isMiddleUp && isRingUp && isPinkyUp && getDistance(thumbTip, indexTip) < 0.07)
@@ -383,8 +428,12 @@ function recognizeGestureWord(landmarks) {
         return resultadoElem.innerText = "Ruim";
     if (countFingersUp === 4 && isThumbUp)
         return resultadoElem.innerText = "Oi";
+
+    // MODIFICADO: Adicionado "Tu" como sinónimo de "Você".
+    // (Ainda se aplica a regra "Eu" vs "Você" baseada na posição x)
     if (isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp)
-        return resultadoElem.innerText = (indexTip.x > wrist.x) ? "Eu" : "Você";
+        return resultadoElem.innerText = (indexTip.x > wrist.x) ? "Eu" : "Você / Tu"; 
+
     if (countFingersUp === 0 && getDistance(thumbTip, indexTip) < 0.06)
         return resultadoElem.innerText = "Comer";
     if (!isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp && getDistance(thumbTip, indexTip) > 0.1)
@@ -392,9 +441,9 @@ function recognizeGestureWord(landmarks) {
     if (isIndexUp && isMiddleUp && getDistance(thumbTip, indexTip) < 0.05)
         return resultadoElem.innerText = "Dinheiro";
 
+    // Se nada for reconhecido
     resultadoElem.innerText = "...";
 }
-
 
 // ===================================================================
 // PARTE 3: CONTROLO DE ABAS (CORRIGIDO)
@@ -410,7 +459,7 @@ function stopAllStreams() {
         streamPalavras.getTracks().forEach(track => track.stop());
         streamPalavras = null;
     }
-    
+
     // Liberta os elementos de vídeo
     if (videoAlfabeto) {
         videoAlfabeto.pause();
@@ -435,7 +484,7 @@ window.openTab = async function (tabId) {
 
     document.getElementById(tabId).style.display = "block";
     document.getElementById(tabId).classList.add("active");
-    
+
     const buttonId = `btn-${tabId.replace('introducao', 'intro')}`;
     document.getElementById(buttonId)?.classList.add("active");
 
@@ -452,7 +501,7 @@ window.openTab = async function (tabId) {
         await setupCameraPalavras(); // Inicia a câmara
 
     } else if (tabId === "alfabeto") {
-        if (!isAlfabetoInitialized) { 
+        if (!isAlfabetoInitialized) {
             await initAlfabeto(); // Carrega o modelo (só 1 vez)
         }
         await startWebcamAlfabeto(); // Inicia a câmara
@@ -466,8 +515,6 @@ window.openTab = async function (tabId) {
 // ===================================================================
 
 // --- ATENÇÃO: COLOQUE A SUA CHAVE DA API AQUI ---
-const API_KEY = "COLE_SUA_CHAVE_DA_API_AQUI"; 
-const GEN_MODEL = "gemini-2.5-flash-preview-09-2025"; 
 
 let chatMessages, chatInput, chatSend, chatHistory;
 
@@ -475,11 +522,11 @@ let chatMessages, chatInput, chatSend, chatHistory;
 function addMessageToChat(sender, message) {
     const messageElement = document.createElement("div");
     messageElement.classList.add("chat-message", sender === "user" ? "user-message" : "ai-message");
-    
+
     let htmlMessage = message
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')       
-        .replace(/\n/g, '<br>');                   
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
 
     messageElement.innerHTML = htmlMessage;
     chatMessages.appendChild(messageElement);
@@ -507,7 +554,7 @@ function removeLoadingIndicator() {
 // Lida com o envio da mensagem
 async function handleChatSubmit() {
     const prompt = chatInput.value.trim();
-    if (!prompt) return; 
+    if (!prompt) return;
 
     if (API_KEY === "COLE_SUA_CHAVE_DA_API_AQUI") {
         addMessageToChat("ai", "Erro: A chave da API (API_KEY) não foi definida no `script.js`. Por favor, obtenha uma chave no Google AI Studio e cole-a no ficheiro.");
@@ -515,16 +562,16 @@ async function handleChatSubmit() {
     }
 
     addMessageToChat("user", prompt);
-    chatInput.value = ""; 
-    showLoadingIndicator(); 
+    chatInput.value = "";
+    showLoadingIndicator();
 
     // Atualiza o histórico para enviar à API
     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
     try {
         const aiResponse = await callGeminiAPI(prompt);
-        removeLoadingIndicator(); 
-        addMessageToChat("ai", aiResponse); 
+        removeLoadingIndicator();
+        addMessageToChat("ai", aiResponse);
 
         // Adiciona a resposta da IA ao histórico
         chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
@@ -573,7 +620,7 @@ async function callGeminiAPI(prompt) {
     }
 
     const data = await response.json();
-    
+
     if (data.candidates && data.candidates.length > 0) {
         // Verifica se a resposta não foi bloqueada
         if (data.candidates[0].content && data.candidates[0].content.parts) {
@@ -583,7 +630,7 @@ async function callGeminiAPI(prompt) {
             return "Desculpe, não posso responder a essa pergunta pois ela viola as minhas diretrizes de segurança.";
         }
     }
-    
+
     return "Não consegui gerar uma resposta. Tente novamente.";
 }
 
@@ -600,31 +647,30 @@ document.addEventListener('DOMContentLoaded', () => {
     overlayCanvasAlfabeto = document.getElementById('overlay');
     overlayCtxAlfabeto = overlayCanvasAlfabeto.getContext('2d');
     alfabetoContent = document.getElementById('alfabeto-content');
-    
+
+    // --- Define elementos do MediaPipe (Parte 2 - Palavras) ---
+    video_palavras = document.getElementById('webcam_palavras');
+    canvas_palavras = document.getElementById('output_canvas_palavras');
+    ctx_palavras = canvas_palavras?.getContext('2d');
+    drawingUtils = new DrawingUtils(ctx_palavras);
+
     // --- Define elementos do Assistente IA (Parte 4) ---
-    // CORREÇÃO: Adiciona '?' para evitar erros se os elementos não existirem
-    // (O seu index.html mais recente não tem a aba 'assistente')
     chatMessages = document.getElementById('chat-messages');
     chatInput = document.getElementById('chat-input');
     chatSend = document.getElementById('chat-send');
-    chatHistory = []; // Inicia o histórico do chat
+    chatHistory = [];
 
-    // --- Adiciona os cliques aos botões (Parte 3 e 4) ---
+    // Botões de navegação
     document.getElementById('btn-intro')?.addEventListener('click', () => window.openTab('introducao'));
     document.getElementById('btn-alfabeto')?.addEventListener('click', () => window.openTab('alfabeto'));
     document.getElementById('btn-palavras')?.addEventListener('click', () => window.openTab('palavras'));
-    document.getElementById('btn-assistente')?.addEventListener('click', () => window.openTab('assistente')); 
+    document.getElementById('btn-assistente')?.addEventListener('click', () => window.openTab('assistente'));
 
-    // Adiciona listener para o botão de Enviar do chat
     chatSend?.addEventListener('click', handleChatSubmit);
-    // Adiciona listener para a tecla "Enter" no input do chat
     chatInput?.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            handleChatSubmit();
-        }
+        if (event.key === 'Enter') handleChatSubmit();
     });
 
-    // Abre a aba "Introdução" por padrão
     window.openTab('introducao');
 });
 

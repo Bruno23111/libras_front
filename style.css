@@ -2,47 +2,76 @@ body {
     font-family: 'Inter', sans-serif;
     background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
 }
+
+/* ============================== */
+/* ABAS (NAVEGAÇÃO PRINCIPAL)    */
+/* ============================== */
+
 .tab-content {
     display: none;
 }
+
 .tab-content.active {
     display: block;
     animation: fadeIn 0.5s ease-out forwards;
 }
+
+/* ---- NOVO ESTILO DOS BOTÕES ---- */
 .tab-button {
-    /* Estas classes são aplicadas pelo Tailwind no HTML, 
-       mas mantemos a transição e o hover aqui */
-    transition: all 0.3s ease-in-out;
-}
-.tab-button:not(.active):hover {
-    transform: translateY(-2px);
-    background-color: #f5f3ff; /* Cor de hover suave */
-}
-.tab-button.active {
-    /* Estilo da aba ativa do seu ficheiro original */
-    background-color: #7C3AED; /* violet-600 */
+    background-color: #7C3AED; /* roxo principal */
     color: white;
-    box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.2), 0 2px 4px -1px rgba(124, 58, 237, 0.12);
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border-radius: 0.375rem;
+    margin: 0.25rem;
 }
+
+.tab-button:hover {
+    background-color: #6D28D9; /* roxo mais escuro no hover */
+    transform: translateY(-2px);
+}
+
+.tab-button.active {
+    background-color: #5B21B6; /* roxo ainda mais escuro */
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(91, 33, 182, 0.3);
+    transform: translateY(-2px);
+}
+
+.tab-button.active:hover {
+    background-color: #5B21B6;
+    transform: none;
+}
+
+/* ============================== */
+/* ELEMENTOS GERAIS DO SITE       */
+/* ============================== */
+
 .main-card {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 .main-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+                0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
+
+/* ============================== */
+/* CÂMERAS E CANVAS               */
+/* ============================== */
+
 .camera-container {
     position: relative;
     width: 100%;
     margin: auto;
     border-radius: 0.5rem;
-    /* Proporção quadrada do seu ficheiro original */
     aspect-ratio: 1 / 1; 
     background-color: #111827;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden; /* Garante que o vídeo não vaze */
+    overflow: hidden;
 }
 
 .camera-container video,
@@ -54,14 +83,15 @@ body {
     height: 100%;
     object-fit: cover; 
 }
+
 .camera-container video {
-    transform: scaleX(-1); /* mantém o espelhamento */
+    transform: scaleX(-1);
     z-index: 0;
 }
+
 .camera-container canvas {
     z-index: 10;
-    /* O canvas do overlay não deve ser espelhado, pois desenhamos nele */
-    transform: scaleX(1); 
+    transform: scaleX(1);
 }
 
 /* Espelhamento para o MediaPipe (Palavras) */
@@ -69,17 +99,18 @@ body {
     transform: scaleX(-1);
 }
 
+/* ============================== */
+/* ANIMAÇÕES E ELEMENTOS DE STATUS */
+/* ============================== */
 
 .loader {
     border-top-color: #7C3AED;
     animation: spinner 1.2s linear infinite;
 }
 
-/* Classe 'hidden' para ocultar elementos (usada pelo JS) */
 .hidden {
     display: none !important;
 }
-
 
 @keyframes spinner {
     0% { transform: rotate(0deg); }
@@ -91,43 +122,47 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-
-/* ======================================== */
-/* NOVOS ESTILOS PARA O ASSISTENTE IA       */
-/* ======================================== */
+/* ============================== */
+/* ESTILOS DO ASSISTENTE IA       */
+/* ============================== */
 
 #chat-messages {
     height: 400px;
     overflow-y: auto;
-    border: 1px solid #e5e7eb; /* gray-200 */
-    border-radius: 0.5rem; /* rounded-lg */
-    padding: 1rem; /* p-4 */
-    background-color: #f9fafb; /* gray-50 */
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background-color: #f9fafb;
     display: flex;
     flex-direction: column;
-    gap: 1rem; /* space-y-4 */
+    gap: 1rem;
 }
+
 .chat-message {
-    padding: 0.75rem 1rem; /* p-3 px-4 */
-    border-radius: 0.5rem; /* rounded-lg */
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
     max-width: 80%;
     line-height: 1.6;
-    word-wrap: break-word; /* Quebra palavras longas */
+    word-wrap: break-word;
 }
+
 .user-message {
-    background-color: #EDE9FE; /* violet-100 */
-    color: #5B21B6; /* violet-800 */
+    background-color: #EDE9FE;
+    color: #5B21B6;
     align-self: flex-end;
 }
+
 .ai-message {
-    background-color: #F3F4F6; /* gray-100 */
-    color: #1F2937; /* gray-800 */
+    background-color: #F3F4F6;
+    color: #1F2937;
     align-self: flex-start;
 }
+
 #chat-loading {
     align-self: flex-start;
     padding: 0.75rem 1rem;
 }
+
 .dot-flashing {
     position: relative;
     width: 10px; height: 10px;
@@ -137,6 +172,7 @@ body {
     animation: dotFlashing 1s infinite linear alternate;
     animation-delay: .5s;
 }
+
 .dot-flashing::before, .dot-flashing::after {
     content: '';
     display: inline-block;
@@ -147,17 +183,99 @@ body {
     background-color: #7C3AED;
     color: #7C3AED;
 }
+
 .dot-flashing::before {
     left: -15px;
     animation: dotFlashing 1s infinite alternate;
     animation-delay: 0s;
 }
+
 .dot-flashing::after {
     left: 15px;
     animation: dotFlashing 1s infinite alternate;
     animation-delay: 1s;
 }
+
 @keyframes dotFlashing {
     0% { background-color: #7C3AED; }
     50%, 100% { background-color: #DDD6FE; }
+}
+
+/* ============================== */
+/* RESPONSIVIDADE                 */
+/* ============================== */
+
+@media (max-width: 640px) {
+
+    .container {
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 2.25rem;
+        line-height: 2.5rem;
+    }
+
+    .main-card h2 {
+        font-size: 1.5rem;
+        line-height: 2rem;
+    }
+
+    .mb-8.flex-wrap {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .tab-button {
+        width: 100%;
+        text-align: center;
+    }
+
+    #introducao.main-card,
+    #alfabeto .main-card,
+    #palavras .main-card,
+    #assistente .main-card {
+        padding: 1.5rem; 
+    }
+
+    #result,
+    #result_palavras {
+        font-size: 2.25rem;
+        height: 4rem;
+    }
+
+    #chat-messages {
+        height: 300px;
+    }
+
+    div:has(> #chat-input) {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+
+    #chat-input {
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.75rem;
+    }
+
+    #chat-send {
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+    #chat-send {
+        font-size: 0.875rem;
+        padding: 0.75rem 1rem;
+    }
+    #chat-input {
+        font-size: 1rem;
+        padding: 0.75rem;
+    }
 }
