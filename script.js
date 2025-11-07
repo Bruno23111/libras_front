@@ -1,6 +1,5 @@
 import { HandLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest";
-
-
+import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
 // ===================================================================
 // PARTE 1: LÓGICA DO ALFABETO (TensorFlow.js)
@@ -34,6 +33,7 @@ let alfabetoContent;
 
 let boxX = 0, boxY = 0, boxSize = 0;
 
+// CORREÇÃO: Movida para o topo da PARTE 1
 // Suavização de predições (Alfabeto)
 function smoothPredictionAlfabeto(newLetter) {
     lastPredictionsAlfabeto.push(newLetter);
@@ -49,6 +49,7 @@ async function initAlfabeto() {
     isAlfabetoInitialized = true;
 
     try {
+        // CORREÇÃO: Tenta usar 'webgl' e, se falhar, usa 'cpu'
         try {
             await tf.setBackend('webgl');
             await tf.ready();
@@ -73,6 +74,8 @@ async function initAlfabeto() {
 // Inicia a webcam (Alfabeto)
 async function startWebcamAlfabeto() {
     try {
+        // 'videoAlfabeto' é definido no DOMContentLoaded
+
         videoAlfabeto.onplaying = () => {
             overlayCanvasAlfabeto.width = videoAlfabeto.videoWidth;
             overlayCanvasAlfabeto.height = videoAlfabeto.videoHeight;
@@ -88,7 +91,7 @@ async function startWebcamAlfabeto() {
         });
         streamAlfabeto = stream; // Guarda o stream
         videoAlfabeto.srcObject = streamAlfabeto;
-        await videoAlfabeto.play();
+        await videoAlfabeto.play(); // Tenta dar play
 
     } catch (err) {
         console.error("Erro ao acessar à webcam (Alfabeto): ", err);
@@ -133,6 +136,7 @@ async function predictLoopAlfabeto() {
     });
 
     if (confidence > 0.7) {
+        // CORREÇÃO: Chamada agora é válida
         const smoothed = smoothPredictionAlfabeto(letter);
         if (resultElementAlfabeto) resultElementAlfabeto.innerText = `${smoothed}`;
     } else {
@@ -188,6 +192,9 @@ let results = null;
 let isPalavrasInitialized = false;
 let streamPalavras = null; // Para guardar o stream da câmara
 
+// CORREÇÃO: Esta é a nova função que ESPERA pelo bundle
+
+
 // Inicialização do MediaPipe (Palavras)
 async function initPalavras() {
     if (isPalavrasInitialized) return;
@@ -197,12 +204,14 @@ async function initPalavras() {
 
         statusElem && (statusElem.innerText = "Iniciando FilesetResolver...");
 
+        // Cria o resolver - se der erro, tentamos logging adicional
         const vision = await FilesetResolver.forVisionTasks(
             "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
         );
 
         statusElem && (statusElem.innerText = "Carregando modelo HandLandmarker...");
 
+        // Cria o handLandmarker. Se o delegate 'GPU' falhar em alguns ambientes, fallback para 'CPU'
         try {
             handLandmarker = await HandLandmarker.createFromOptions(vision, {
                 baseOptions: {
@@ -237,16 +246,18 @@ async function initPalavras() {
     } catch (err) {
         console.error("Erro em initPalavras():", err);
         isPalavrasInitialized = false;
+        // Mostra erro mais claro ao utilizador
         const statusElem = document.getElementById("status_palavras");
         if (statusElem) {
             statusElem.classList.remove('hidden');
             statusElem.innerText = "Erro ao carregar MediaPipe (ver console). Verifique rede/CDN ou tente recarregar a página.";
         }
+        // Rejeita para que chamador saiba (ex.: window.openTab pode optar por não chamar setupCamera)
         throw err;
     }
 }
 
-// Inicia a webcam (Palavras)
+// Inicia a webcam (Palavras) - FUNÇÃO ADICIONADA
 async function setupCameraPalavras() {
     if (!video_palavras) {
         console.error("Elemento de vídeo 'webcam_palavras' não encontrado.");
@@ -257,12 +268,14 @@ async function setupCameraPalavras() {
 
     try {
         video_palavras.onplaying = () => {
+            // Ajusta o tamanho do canvas para o tamanho real do vídeo
             canvas_palavras.width = video_palavras.videoWidth;
             canvas_palavras.height = video_palavras.videoHeight;
 
             statusElem.classList.add("hidden");
             contentElem.classList.remove("hidden");
 
+            // Inicia o loop
             predictLoopPalavras();
         };
 
@@ -353,41 +366,52 @@ function drawBoundingBoxPalavras(landmarks) {
     ctx_palavras.strokeRect(minX, minY, w, h);
 }
 
-// Reconhece o gesto/palavra
 function recognizeGestureWord(landmarks) {
     const resultadoElem = document.getElementById("result_palavras");
     if (!resultadoElem) return;
 
     const getDistance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
+    // Adiciona o ponto 'indexPip' (junta do meio do indicador)
     const thumbTip = landmarks[4], indexTip = landmarks[8],
         middleTip = landmarks[12], ringTip = landmarks[16],
         pinkyTip = landmarks[20], wrist = landmarks[0],
         indexPip = landmarks[6]; 
 
     const isThumbUp = thumbTip.y < landmarks[2].y;
-    const isIndexUp = indexTip.y < landmarks[6].y;
+    const isIndexUp = indexTip.y < landmarks[6].y; // Dedo esticado (ponta > base)
     const isMiddleUp = middleTip.y < landmarks[10].y;
     const isRingUp = ringTip.y < landmarks[14].y;
     const isPinkyUp = pinkyTip.y < landmarks[18].y;
 
     const countFingersUp = [isIndexUp, isMiddleUp, isRingUp, isPinkyUp].filter(Boolean).length;
 
-    // "Pensar"
+    // --- NOVAS REGRAS ADICIONADAS (Têm prioridade) ---
+
+    // NOVO: "Pensar"
+    // Lógica: Dedo indicador esticado (isIndexUp), outros dobrados,
+    // e a ponta do dedo está no topo do ecrã (y < 0.25), simulando a têmpora.
     if (isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp && indexTip.y < 0.25) {
         return resultadoElem.innerText = "Pensar";
     }
 
-    // "Aqui"
-    const isIndexPointingDown = indexTip.y > indexPip.y + 0.05;
+    // NOVO: "Aqui"
+    // Lógica: Dedo indicador esticado (isIndexUp), outros dobrados,
+    // E está a apontar para baixo (ponta do dedo 'y' > junta do meio 'y')
+    // E é vertical (diferença 'x' entre ponta e junta é pequena)
+    const isIndexPointingDown = indexTip.y > indexPip.y + 0.05; // +0.05 de margem
     const isIndexVertical = Math.abs(indexTip.x - indexPip.x) < 0.08;
     if (isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp && isIndexPointingDown && isIndexVertical) {
          return resultadoElem.innerText = "Aqui";
     }
 
+    // --- REGRAS EXISTENTES (Com modificações) ---
+
     if (isThumbUp && isIndexUp && !isMiddleUp && !isRingUp && isPinkyUp)
         return resultadoElem.innerText = "Eu te amo";
 
+    // MODIFICADO: "Telefone" e "Agora" usam a mão em 'Y'.
+    // A diferença é o movimento, que não detetamos.
     if (isThumbUp && !isIndexUp && !isMiddleUp && !isRingUp && isPinkyUp)
         return resultadoElem.innerText = "Telefone / Agora";
 
@@ -404,6 +428,8 @@ function recognizeGestureWord(landmarks) {
     if (countFingersUp === 4 && isThumbUp)
         return resultadoElem.innerText = "Oi";
 
+    // MODIFICADO: Adicionado "Tu" como sinónimo de "Você".
+    // (Ainda se aplica a regra "Eu" vs "Você" baseada na posição x)
     if (isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp)
         return resultadoElem.innerText = (indexTip.x > wrist.x) ? "Eu" : "Você / Tu"; 
 
@@ -414,13 +440,15 @@ function recognizeGestureWord(landmarks) {
     if (isIndexUp && isMiddleUp && getDistance(thumbTip, indexTip) < 0.05)
         return resultadoElem.innerText = "Dinheiro";
 
+    // Se nada for reconhecido
     resultadoElem.innerText = "...";
 }
 
 // ===================================================================
-// PARTE 3: CONTROLO DE ABAS
+// PARTE 3: CONTROLO DE ABAS (CORRIGIDO)
 // ===================================================================
 
+// CORREÇÃO: Nova função para PARAR todos os streams (desligar a câmara)
 function stopAllStreams() {
     if (streamAlfabeto) {
         streamAlfabeto.getTracks().forEach(track => track.stop());
@@ -431,19 +459,21 @@ function stopAllStreams() {
         streamPalavras = null;
     }
 
+    // Liberta os elementos de vídeo
     if (videoAlfabeto) {
         videoAlfabeto.pause();
         videoAlfabeto.srcObject = null;
-        videoAlfabeto.onplaying = null;
+        videoAlfabeto.onplaying = null; // Remove o listener
     }
     if (video_palavras) {
         video_palavras.pause();
         video_palavras.srcObject = null;
-        video_palavras.onplaying = null;
+        video_palavras.onplaying = null; // Remove o listener
     }
     isAlfabetoTabActive = false;
 }
 
+// Define openTab no 'window' para ser acessível globalmente
 window.openTab = async function (tabId) {
     document.querySelectorAll(".tab-content").forEach((el) => {
         el.style.display = "none";
@@ -457,34 +487,88 @@ window.openTab = async function (tabId) {
     const buttonId = `btn-${tabId.replace('introducao', 'intro')}`;
     document.getElementById(buttonId)?.classList.add("active");
 
+    // --- MUDANÇA: Gerenciamento das Câmeras CORRIGIDO ---
+
+    // 1. Desliga SEMPRE todas as câmaras ativas antes de mudar de aba
     stopAllStreams();
 
+    // 2. Liga a câmara necessária para a aba clicada
     if (tabId === "palavras") {
         if (!isPalavrasInitialized) {
-            await initPalavras();
+            await initPalavras(); // Carrega o modelo (só 1 vez)
         }
-        await setupCameraPalavras();
+        await setupCameraPalavras(); // Inicia a câmara
 
     } else if (tabId === "alfabeto") {
         if (!isAlfabetoInitialized) {
-            await initAlfabeto();
+            await initAlfabeto(); // Carrega o modelo (só 1 vez)
         }
-        await startWebcamAlfabeto();
+        await startWebcamAlfabeto(); // Inicia a câmara
     }
+    // Se for "Introdução" ou "Assistente", nenhuma câmara é ligada.
 };
 
 
 // ===================================================================
-// PARTE 4: LÓGICA DO ASSISTENTE IA GENERATIVA (VERSÃO SEGURA PARA VERCEL)
+// PARTE 4: LÓGICA DO ASSISTENTE IA GENERATIVA (VERSÃO NAVEGADOR)
 // ===================================================================
 
+// --- ATENÇÃO: A CHAVE AQUI ESTÁ PÚBLICA E PODE SER ROUBADA ---
+const API_KEY = "AIzaSyDhjx2peUj1Y-fjYbDu7t4J2JUNuzYYZTY"; 
+const GEN_MODEL = "gemini-2.5-flash"; // O modelo que você pediu
+
 let chatMessages, chatInput, chatSend, chatHistory;
+let genAI, chat; // Variáveis globais para o modelo e o chat
+
+
+
+// Inicializa o modelo de IA
+function initGemini() {
+    try {
+        genAI = new GoogleGenerativeAI(API_KEY);
+
+        const systemInstruction = {
+            role: "system",
+            parts: [{ text: "Você é o 'Libras.IO', um assistente de IA amigável, especialista e entusiasta da Língua Brasileira de Sinais (Libras). Sua missão é ajudar estudantes a aprender, tirando dúvidas sobre gramática, história, cultura Surda e os sinais. Seja didático, encorajador e use formatação Markdown (como **negrito**) para destacar termos importantes. Responda em português do Brasil." }]
+        };
+
+        const safetySettings = [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        ];
+
+        const model = genAI.getGenerativeModel({
+            model: GEN_MODEL,
+            systemInstruction,
+            safetySettings
+        });
+
+        // Inicia um novo chat com o histórico vazio
+        chat = model.startChat({
+            history: [],
+            generationConfig: {
+                temperature: 0.7,
+                topK: 1,
+                topP: 1,
+            }
+        });
+
+        console.log("Assistente de IA (Gemini) inicializado.");
+
+    } catch (error) {
+        console.error("Erro ao inicializar o Gemini:", error);
+        addMessageToChat("ai", "Erro ao inicializar a IA. Verifique a Chave de API e a consola.");
+    }
+}
 
 // Adiciona uma mensagem à janela de chat
 function addMessageToChat(sender, message) {
     const messageElement = document.createElement("div");
     messageElement.classList.add("chat-message", sender === "user" ? "user-message" : "ai-message");
 
+    // Processamento simples de Markdown (o mesmo de antes)
     let htmlMessage = message
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -515,69 +599,35 @@ function removeLoadingIndicator() {
 
 // Lida com o envio da mensagem
 async function handleChatSubmit() {
-  const prompt = chatInput.value.trim();
-  if (!prompt) return;
+    const prompt = chatInput.value.trim();
+    if (!prompt) return;
 
-  addMessageToChat("user", prompt);
-  chatInput.value = "";
-  showLoadingIndicator();
+    
 
-  chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-
-  let retries = 0;
-  const maxRetries = 3;
-
-  while (retries < maxRetries) {
-    try {
-      const aiResponse = await callGeminiAPI(chatHistory);
-      removeLoadingIndicator();
-      addMessageToChat("ai", aiResponse);
-      chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
-      return; // sucesso, sai do loop
-    } catch (error) {
-      retries++;
-      console.warn(`Tentativa ${retries} falhou:`, error.message);
-
-      if (retries >= maxRetries) {
-        removeLoadingIndicator();
-        addMessageToChat("ai", "⚠️ Ocorreu um erro temporário na conexão com o servidor. Tente novamente em alguns segundos.");
+    // Garante que a IA foi inicializada
+    if (!chat) {
+        addMessageToChat("ai", "A IA ainda não está pronta. Tente novamente em alguns segundos.");
         return;
-      }
-
-      await new Promise(r => setTimeout(r, 2000)); // espera 2s antes de tentar de novo
-    }
-  }
-}
-
-
-// Chama a API do Google Gemini (AGORA CHAMA O NOSSO BACKEND)
-async function callGeminiAPI(history) { // Modificado: recebe o histórico
-    // A URL AGORA APONTA PARA A NOSSA FUNÇÃO DE BACKEND NA VERCEL
-    const API_URL = "/api/chat"; // Caminho relativo para a Serverless Function
-
-    const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // Envia apenas o histórico
-        body: JSON.stringify({ history: history })
-    });
-
-    if (!response.ok) {
-        let errorText = "Erro desconhecido do servidor";
-        try {
-            // Tenta ler a resposta de erro como JSON (o que o nosso api/chat.js envia)
-            const errorData = await response.json();
-            errorText = errorData.error || JSON.stringify(errorData);
-        } catch (jsonError) {
-            // Se falhar (como agora), lê como texto puro (o que a Vercel envia)
-            errorText = await response.text();
-        }
-        // Lança um erro para ser apanhado pelo bloco catch em handleChatSubmit
-        throw new Error(errorText);
     }
 
-    const data = await response.json();
-    return data.text; // O backend agora nos envia o texto diretamente
+    addMessageToChat("user", prompt);
+    chatInput.value = "";
+    showLoadingIndicator();
+
+    try {
+        // Envia a mensagem para o chat (o SDK cuida do histórico)
+        const result = await chat.sendMessage(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        removeLoadingIndicator();
+        addMessageToChat("ai", text);
+
+    } catch (error) {
+        console.error("Erro ao chamar a API Gemini:", error);
+        removeLoadingIndicator();
+        addMessageToChat("ai", "Desculpe, ocorreu um erro ao conectar-me à IA. Por favor, tente novamente. (Verifique a consola para mais detalhes)");
+    }
 }
 
 
@@ -606,6 +656,8 @@ document.addEventListener('DOMContentLoaded', () => {
     chatSend = document.getElementById('chat-send');
     chatHistory = [];
 
+    initGemini();
+
     // Botões de navegação
     document.getElementById('btn-intro')?.addEventListener('click', () => window.openTab('introducao'));
     document.getElementById('btn-alfabeto')?.addEventListener('click', () => window.openTab('alfabeto'));
@@ -619,3 +671,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.openTab('introducao');
 });
+
