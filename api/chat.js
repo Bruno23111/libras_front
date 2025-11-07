@@ -1,4 +1,7 @@
+// IMPORTANTE: Este ficheiro DEVE estar numa pasta chamada /api/ na raiz do seu projeto.
+// O caminho final deve ser: /api/chat.js
 
+// Usamos 'export default' para ser compatível com as Serverless Functions da Vercel
 export default async function handler(request, response) {
     // Apenas permite pedidos POST
     if (request.method !== 'POST') {
@@ -10,6 +13,9 @@ export default async function handler(request, response) {
     // O nome 'GEMINI_API_KEY' é o que você vai configurar no painel da Vercel.
     const API_KEY = process.env.GEMINI_API_KEY; // <-- ERRO CORRIGIDO (removido o 'a')
     
+    // LINHA DE DEPURAÇÃO: Verifique o que está a ser lido
+    console.log("Valor de GEMINI_API_KEY:", API_KEY ? "Encontrada" : "NÃO ENCONTRADA");
+
     // 2. Obter o histórico do chat do frontend (enviado no corpo do pedido)
     const { history } = request.body;
 
