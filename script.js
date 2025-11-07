@@ -515,31 +515,40 @@ function removeLoadingIndicator() {
 
 // Lida com o envio da mensagem
 async function handleChatSubmit() {
-    const prompt = chatInput.value.trim();
-    if (!prompt) return;
+  const prompt = chatInput.value.trim();
+  if (!prompt) return;
 
-    addMessageToChat("user", prompt);
-    chatInput.value = "";
-    showLoadingIndicator();
+  addMessageToChat("user", prompt);
+  chatInput.value = "";
+  showLoadingIndicator();
 
-    // Atualiza o histórico para enviar à API
-    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+  chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
+  let retries = 0;
+  const maxRetries = 3;
+
+  while (retries < maxRetries) {
     try {
-        // MODIFICADO: Chama a NOSSA API em /api/chat
-        const aiResponse = await callGeminiAPI(chatHistory); // Envia o histórico
-        removeLoadingIndicator();
-        addMessageToChat("ai", aiResponse);
-        // Adiciona a resposta da IA ao histórico
-        chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
-
+      const aiResponse = await callGeminiAPI(chatHistory);
+      removeLoadingIndicator();
+      addMessageToChat("ai", aiResponse);
+      chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
+      return; // sucesso, sai do loop
     } catch (error) {
-        console.error("Erro ao chamar a API local:", error); // Mensagem de erro atualizada
+      retries++;
+      console.warn(`Tentativa ${retries} falhou:`, error.message);
+
+      if (retries >= maxRetries) {
         removeLoadingIndicator();
-        // Usa a mensagem de erro tratada da callGeminiAPI
-        addMessageToChat("ai", `Desculpe, ocorreu um erro ao conectar-me à IA. (Erro: ${error.message})`);
+        addMessageToChat("ai", "⚠️ Ocorreu um erro temporário na conexão com o servidor. Tente novamente em alguns segundos.");
+        return;
+      }
+
+      await new Promise(r => setTimeout(r, 2000)); // espera 2s antes de tentar de novo
     }
+  }
 }
+
 
 // Chama a API do Google Gemini (AGORA CHAMA O NOSSO BACKEND)
 async function callGeminiAPI(history) { // Modificado: recebe o histórico

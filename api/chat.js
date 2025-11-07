@@ -1,94 +1,88 @@
-// IMPORTANTE: Este ficheiro DEVE estar numa pasta chamada /api/ na raiz do seu projeto.
-// O caminho final deve ser: /api/chat.js
+// --- /api/chat.js ---
+// IMPORTANTE: Este ficheiro deve estar na pasta /api na raiz do projeto.
 
-// Usamos 'export default' para ser compatível com as Serverless Functions da Vercel
 export default async function handler(request, response) {
-    // Apenas permite pedidos POST
-    if (request.method !== 'POST') {
-        response.status(405).json({ error: 'Method Not Allowed' });
-        return;
-    }
+  if (request.method !== "POST") {
+    response.status(405).json({ error: "Method Not Allowed" });
+    return;
+  }
 
-    // 1. Obter a chave da API (segura) das Vercel Environment Variables
-    // O nome 'GEMINI_API_KEY' é o que você vai configurar no painel da Vercel.
-    const API_KEY = process.env.GEMINI_API_KEY; // <-- ERRO CORRIGIDO (removido o 'a')
-    
-    // LINHA DE DEPURAÇÃO: Verifique o que está a ser lido
-    console.log("Valor de GEMINI_API_KEY:", API_KEY ? "Encontrada" : "NÃO ENCONTRADA");
+  const API_KEY = process.env.GEMINI_API_KEY;
+  console.log("Valor de GEMINI_API_KEY:", API_KEY ? "Encontrada" : "NÃO ENCONTRADA");
 
-    // 2. Obter o histórico do chat do frontend (enviado no corpo do pedido)
-    const { history } = request.body;
+  const { history } = request.body;
 
-    // Verificações de segurança
-    if (!API_KEY) {
-        // Não expõe a chave, apenas informa que não está configurada
-        response.status(500).json({ error: 'A chave da API não está configurada no servidor.' });
-        return;
-    }
+  if (!API_KEY) {
+    response.status(500).json({ error: "A chave GEMINI_API_KEY não está configurada na Vercel." });
+    return;
+  }
 
-    if (!history) {
-        response.status(400).json({ error: 'Histórico do chat em falta.' });
-        return;
-    }
+  if (!history) {
+    response.status(400).json({ error: "Histórico do chat não enviado." });
+    return;
+  }
 
-    // 3. Configurações da API (movidas do script.js para o backend)
-    const GEN_MODEL = "gemini-2.5-flash-preview-09-2025";
-    const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEN_MODEL}:generateContent?key=${API_KEY}`;
+  const GEN_MODEL = "gemini-1.5-flash"; // Modelo estável e suportado
+  const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEN_MODEL}:generateContent?key=${API_KEY}`;
 
-    const systemInstruction = {
-        role: "system",
-        parts: [{ text: "Você é o 'Libras.IO', um assistente de IA amigável, especialista e entusiasta da Língua Brasileira de Sinais (Libras). Sua missão é ajudar estudantes a aprender, tirando dúvidas sobre gramática, história, cultura Surda e os sinais. Seja didático, encorajador e use formatação Markdown (como **negrito**) para destacar termos importantes. Responda em português do Brasil." }]
-    };
+  const systemInstruction = {
+    role: "system",
+    parts: [{
+      text: "Você é o 'Libras.IO', um assistente de IA amigável e especialista em Língua Brasileira de Sinais (Libras). Ajude estudantes de forma clara, didática e empática, usando **Markdown** para destacar conceitos importantes. Responda sempre em português do Brasil."
+    }]
+  };
 
-    const requestBody = {
+  const requestBody = {
     contents: [systemInstruction, ...history],
     safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
     ],
     generationConfig: {
-        temperature: 0.7,
-        topK: 1,
-        topP: 1,
-    }
-};
+      temperature: 0.7,
+      topK: 1,
+      topP: 1,
+    },
+  };
 
-
-    // 4. Chamar a API do Google (do lado do servidor seguro)
-    try {
+  async function callGeminiWithRetry(maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
         const geminiResponse = await fetch(GOOGLE_API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody)
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
         });
 
         if (!geminiResponse.ok) {
-            // Se o Google der erro, repassa o erro
-            const errorData = await geminiResponse.json();
-            console.error("Google API Error:", errorData);
-            response.status(geminiResponse.status).json({ error: errorData.error.message });
-            return;
+          const errorData = await geminiResponse.json().catch(() => ({}));
+          console.error(`Erro Google API (tentativa ${attempt}):`, errorData);
+          if (attempt === maxRetries) throw new Error(errorData.error?.message || "Erro desconhecido");
+          await new Promise(res => setTimeout(res, 2000)); // espera 2s e tenta de novo
+          continue;
         }
 
         const data = await geminiResponse.json();
-
-        // 5. Enviar a resposta de volta ao frontend
-        if (data.candidates && data.candidates.length > 0) {
-            if (data.candidates[0].content && data.candidates[0].content.parts) {
-                const text = data.candidates[0].content.parts[0].text;
-                response.status(200).json({ text: text });
-            } else if (data.candidates[0].finishReason === 'SAFETY') {
-                response.status(200).json({ text: "Desculpe, não posso responder a essa pergunta pois ela viola as minhas diretrizes de segurança." });
-            }
-        } else {
-             response.status(500).json({ error: "Não foi obtida uma resposta válida da API do Google." });
+        if (data.candidates?.length > 0 && data.candidates[0].content?.parts) {
+          return data.candidates[0].content.parts[0].text;
         }
 
-    } catch (error) {
-        // Erro de rede ou ao chamar o fetch
-        console.error("Internal Server Error:", error);
-        response.status(500).json({ error: 'Falha ao comunicar com a API do Google.' });
+        throw new Error("Resposta inválida do modelo");
+      } catch (err) {
+        console.warn(`Erro na tentativa ${attempt}:`, err.message);
+        if (attempt === maxRetries) throw err;
+        await new Promise(res => setTimeout(res, 2000));
+      }
     }
+  }
+
+  try {
+    const text = await callGeminiWithRetry();
+    response.status(200).json({ text });
+  } catch (error) {
+    console.error("Erro final após múltiplas tentativas:", error);
+    response.status(500).json({ error: "Falha ao comunicar com o Gemini. Tente novamente." });
+  }
 }
