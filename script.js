@@ -514,7 +514,7 @@ window.openTab = async function (tabId) {
 // PARTE 4: LÓGICA DO ASSISTENTE IA GENERATIVA
 // ===================================================================
 
-// --- ATENÇÃO: COLOQUE A SUA CHAVE DA API AQUI ---
+
 
 let chatMessages, chatInput, chatSend, chatHistory;
 
@@ -556,11 +556,6 @@ async function handleChatSubmit() {
     const prompt = chatInput.value.trim();
     if (!prompt) return;
 
-    if (API_KEY === "COLE_SUA_CHAVE_DA_API_AQUI") {
-        addMessageToChat("ai", "Erro: A chave da API (API_KEY) não foi definida no `script.js`. Por favor, obtenha uma chave no Google AI Studio e cole-a no ficheiro.");
-        return;
-    }
-
     addMessageToChat("user", prompt);
     chatInput.value = "";
     showLoadingIndicator();
@@ -569,10 +564,9 @@ async function handleChatSubmit() {
     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
     try {
-        const aiResponse = await callGeminiAPI(prompt);
+        const aiResponse = await callGeminiAPI(chatHistory); // Envia o histórico
         removeLoadingIndicator();
         addMessageToChat("ai", aiResponse);
-
         // Adiciona a resposta da IA ao histórico
         chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
 
@@ -585,53 +579,28 @@ async function handleChatSubmit() {
 
 // Chama a API do Google Gemini
 async function callGeminiAPI(prompt) {
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEN_MODEL}:generateContent?key=${API_KEY}`;
+    const API_URL = "/api/chat"
 
     const systemInstruction = {
         role: "system",
         parts: [{ text: "Você é o 'Libras.IO', um assistente de IA amigável, especialista e entusiasta da Língua Brasileira de Sinais (Libras). Sua missão é ajudar estudantes a aprender, tirando dúvidas sobre gramática, história, cultura Surda e os sinais. Seja didático, encorajador e use formatação Markdown (como **negrito**) para destacar termos importantes. Responda em português do Brasil." }]
     };
 
-    const requestBody = {
-        systemInstruction: systemInstruction,
-        contents: [...chatHistory],
-        safetySettings: [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        ],
-        generationConfig: {
-            temperature: 0.7,
-            topK: 1,
-            topP: 1,
-        }
-    };
-
     const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody)
+        // Envia apenas o histórico
+        body: JSON.stringify({ history: history })
     });
 
     if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`API Error ${response.status}: ${errorData.error.message}`);
+        // Lança um erro para ser apanhado pelo bloco catch em handleChatSubmit
+        throw new Error(errorData.error || 'Erro desconhecido do servidor');
     }
 
     const data = await response.json();
-
-    if (data.candidates && data.candidates.length > 0) {
-        // Verifica se a resposta não foi bloqueada
-        if (data.candidates[0].content && data.candidates[0].content.parts) {
-            const text = data.candidates[0].content.parts[0].text;
-            return text;
-        } else if (data.candidates[0].finishReason === 'SAFETY') {
-            return "Desculpe, não posso responder a essa pergunta pois ela viola as minhas diretrizes de segurança.";
-        }
-    }
-
-    return "Não consegui gerar uma resposta. Tente novamente.";
+    return data.text;
 }
 
 
