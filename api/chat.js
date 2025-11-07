@@ -22,8 +22,8 @@ export default async function handler(request, response) {
         return;
     }
 
-    const GEN_MODEL = "gemini-pro"; // Modelo estável e suportado
-    const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1/models/${GEN_MODEL}:generateContent?key=${API_KEY}`;
+    const GEN_MODEL = "gemini-1.5-pro-latest";
+    const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEN_MODEL}:generateContent?key=${API_KEY}`;
 
     const systemInstruction = {
         role: "system",
