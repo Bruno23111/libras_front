@@ -22,7 +22,7 @@ export default async function handler(request, response) {
     return;
   }
 
-  const GEN_MODEL = "gemini-1.5-flash"; // Modelo estável e suportado
+  const GEN_MODEL = "gemini-pro"; // Modelo estável e suportado
   const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEN_MODEL}:generateContent?key=${API_KEY}`;
 
   const systemInstruction = {
