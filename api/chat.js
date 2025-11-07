@@ -41,20 +41,20 @@ export default async function handler(request, response) {
     };
 
     const requestBody = {
-        systemInstruction: systemInstruction,
-        contents: history, // Usa o histórico enviado pelo frontend
-        safetySettings: [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        ],
-        generationConfig: {
-            temperature: 0.7,
-            topK: 1,
-            topP: 1,
-        }
-    };
+    contents: [systemInstruction, ...history],
+    safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+    ],
+    generationConfig: {
+        temperature: 0.7,
+        topK: 1,
+        topP: 1,
+    }
+};
+
 
     // 4. Chamar a API do Google (do lado do servidor seguro)
     try {
