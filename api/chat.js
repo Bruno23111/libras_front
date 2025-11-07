@@ -1,6 +1,4 @@
 
-
-// Usamos 'export default' para ser compatível com as Serverless Functions da Vercel
 export default async function handler(request, response) {
     // Apenas permite pedidos POST
     if (request.method !== 'POST') {
@@ -10,7 +8,7 @@ export default async function handler(request, response) {
 
     // 1. Obter a chave da API (segura) das Vercel Environment Variables
     // O nome 'GEMINI_API_KEY' é o que você vai configurar no painel da Vercel.
-    const API_KEY = process.env.GEMINI_API_KEY;a
+    const API_KEY = process.env.GEMINI_API_KEY; // <-- ERRO CORRIGIDO (removido o 'a')
     
     // 2. Obter o histórico do chat do frontend (enviado no corpo do pedido)
     const { history } = request.body;
